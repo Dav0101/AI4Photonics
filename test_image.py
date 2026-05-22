@@ -79,6 +79,6 @@ for k in range(600,1050,50):
     t1pp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
     t1sp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
     t1ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
-    data[str(k)] = {'tss':t1ss.cpu().numpy(),'tpp':t1pp.cpu().numpy(), 'tsp':t1sp.cpu().numpy(),'tps':t1ps.cpu().numpy()}
+    data[str(lamb0)] = {'tss':t1ss.cpu().numpy(),'tpp':t1pp.cpu().numpy(), 'tsp':t1sp.cpu().numpy(),'tps':t1ps.cpu().numpy()}
 
 scipy.io.savemat(f'test.mat',data)
