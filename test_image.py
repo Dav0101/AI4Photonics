@@ -70,7 +70,7 @@ pp = []
 sp = []
 ps = []
 
-for k in range(600,701,50):
+for k in range(600,1051,50):
     lamb0 = torch.tensor(float(k),dtype=geo_dtype,device=device)    # nm
     order = [10,4]
     sim = torcwa.rcwa(freq=1/lamb0,order=order,L=L,dtype=sim_dtype,device=device)
