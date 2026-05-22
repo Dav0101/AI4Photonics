@@ -64,9 +64,13 @@ plt.ylabel('y (nm)')
 plt.colorbar()
 plt.show()"""
 
-data={}
 
-for k in range(600,1050,50):
+ss = []
+pp = []
+sp = []
+ps = []
+
+for k in range(600,701,50):
     lamb0 = torch.tensor(float(k),dtype=geo_dtype,device=device)    # nm
     order = [10,4]
     sim = torcwa.rcwa(freq=1/lamb0,order=order,L=L,dtype=sim_dtype,device=device)
@@ -75,10 +79,15 @@ for k in range(600,1050,50):
     layer0_eps = rho*silicon_eps + (1.-rho)
     sim.add_layer(thickness=layer0_thickness,eps=layer0_eps)
     sim.solve_global_smatrix()
-    t1ss = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
-    t1pp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
-    t1sp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
-    t1ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
-    data[str(lamb0)] = {'tss':t1ss.cpu().numpy(),'tpp':t1pp.cpu().numpy(), 'tsp':t1sp.cpu().numpy(),'tps':t1ps.cpu().numpy()}
+    x = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
+    ss.append(x.cpu().numpy())
+    x = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
+    pp.append(x.cpu().numpy())
+    x = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
+    sp.append(x.cpu().numpy())
+    x = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
+    ps.append(x.cpu().numpy())
+    
+data = {'ss': ss, 'pp': pp, 'sp': sp, 'ps': ps}
 
-scipy.io.savemat(f'test.mat',data)
+scipy.io.savemat(f'test.mat', data)
