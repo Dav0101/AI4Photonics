@@ -6,14 +6,9 @@ Topology optimization - Maximize 1st order diffraction
 # Import
 import numpy as np
 import torch
-from torchvision import transforms
 import scipy.io
-from matplotlib import pyplot as plt
-import time
-from PIL import Image
 
 import torcwa
-import Materials
 
 # Hardware
 # If GPU support TF32 tensor core, the matmul operation is faster than FP32 but with less precision.
@@ -21,8 +16,8 @@ import Materials
 torch.backends.cuda.matmul.allow_tf32 = False
 sim_dtype = torch.complex64
 geo_dtype = torch.float32
-#device = torch.device('cuda')
-device = 'cpu'
+device = torch.device('cuda')
+#device = 'cpu'
 
 # Simulation environment
 # light
@@ -53,7 +48,7 @@ y_axis = torcwa.rcwa_geo.y.cpu()
 layer0_thickness = 300.
 
 img = scipy.io.loadmat("rho_Fan.mat")
-rho = torch.as_tensor(img['rho_Fan'])
+rho = torch.as_tensor(img['rho_Fan'], device=device)
 
 """plt.imshow(torch.transpose(rho,-2,-1).cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]])
 plt.title('Layer 0')
