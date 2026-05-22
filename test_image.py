@@ -26,8 +26,8 @@ device = 'cpu'
 
 # Simulation environment
 # light
-lamb0 = torch.tensor(950.,dtype=geo_dtype,device=device)    # nm
-theta = 10.01*(np.pi/180)    # radian
+lamb0 = torch.tensor(600.,dtype=geo_dtype,device=device)    # nm
+theta = 0.01*(np.pi/180)    # radian
 phi = 0.*(np.pi/180)    # radian
 
 # material
@@ -55,19 +55,19 @@ layer0_thickness = 300.
 img = scipy.io.loadmat("rho_Fan.mat")
 rho = torch.as_tensor(img['rho_Fan'])
 
-plt.imshow(torch.transpose(rho,-2,-1).cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]])
+"""plt.imshow(torch.transpose(rho,-2,-1).cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]])
 plt.title('Layer 0')
 plt.xlim([0,L[0]])
 plt.xlabel('x (nm)')
 plt.ylim([0,L[1]])
 plt.ylabel('y (nm)')
 plt.colorbar()
-plt.show()
+plt.show()"""
 
 data={}
 
-for phi in range(0,360,10):
-    phi = float(phi)*(np.pi/180)
+for k in range(600,1050,50):
+    lamb0 = torch.tensor(float(k),dtype=geo_dtype,device=device)    # nm
     order = [10,4]
     sim = torcwa.rcwa(freq=1/lamb0,order=order,L=L,dtype=sim_dtype,device=device)
     sim.add_input_layer(eps=substrate_eps)
@@ -79,6 +79,6 @@ for phi in range(0,360,10):
     t1pp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
     t1sp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
     t1ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
-    data[str(phi)] = {'tss':t1ss.cpu().numpy(),'tpp':t1pp.cpu().numpy(), 'tsp':t1sp.cpu().numpy(),'tps':t1ps.cpu().numpy()}
+    data[str(k)] = {'tss':t1ss.cpu().numpy(),'tpp':t1pp.cpu().numpy(), 'tsp':t1sp.cpu().numpy(),'tps':t1ps.cpu().numpy()}
 
-scipy.io.savemat(f'{lamb0}_{theta}.mat',data)
+scipy.io.savemat(f'test.mat',data)
