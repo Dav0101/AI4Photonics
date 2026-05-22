@@ -25,7 +25,7 @@ device = torch.device('cuda')
 # Simulation environment
 # light
 lamb0 = torch.tensor(532.,dtype=geo_dtype,device=device)    # nm
-inc_ang = 0.*(np.pi/180)    # radian
+inc_ang = 0.01*(np.pi/180)    # radian
 azi_ang = 0.*(np.pi/180)    # radian
 
 # material
@@ -60,12 +60,12 @@ def objective_function(rho):
     layer0_eps = rho*silicon_eps + (1.-rho)
     sim.add_layer(thickness=layer0_thickness,eps=layer0_eps)
     sim.solve_global_smatrix()
-    t1xx = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='xx',ref_order=[0,0])
-    t1yy = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='yy',ref_order=[0,0])
-    t1xy = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='xy',ref_order=[0,0])
-    t1yx = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='yx',ref_order=[0,0])
+    t1ss = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
+    t1pp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
+    t1sp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
+    t1ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
 
-    T1_sum = torch.abs(t1xx)**2 + torch.abs(t1yy)**2 + torch.abs(t1xy)**2 + torch.abs(t1yx)**2
+    T1_sum = torch.abs(t1ss)**2 + torch.abs(t1pp)**2 + torch.abs(t1sp)**2 + torch.abs(t1ps)**2
     return T1_sum
 
 

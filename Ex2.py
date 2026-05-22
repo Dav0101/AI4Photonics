@@ -25,7 +25,7 @@ device = torch.device('cuda')
 # Simulation environment
 # light
 lamb0 = torch.tensor(532.,dtype=geo_dtype,device=device)    # nm
-inc_ang = 15.*(np.pi/180)   # radian
+inc_ang = 15.01*(np.pi/180)   # radian
 azi_ang = 0.*(np.pi/180)    # radian
 
 # material
