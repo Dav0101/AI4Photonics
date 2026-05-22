@@ -19,8 +19,8 @@ import Materials
 torch.backends.cuda.matmul.allow_tf32 = False
 sim_dtype = torch.complex64
 geo_dtype = torch.float32
-#device = torch.device('cuda')
-device = 'cpu'
+device = torch.device('cuda')
+#device = 'cpu'
 
 # Simulation environment
 # light

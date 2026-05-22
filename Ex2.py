@@ -19,8 +19,8 @@ import Materials
 torch.backends.cuda.matmul.allow_tf32 = False
 sim_dtype = torch.complex64
 geo_dtype = torch.float32
-#device = torch.device('cuda')
-device = 'cpu'
+device = torch.device('cuda')
+#device = 'cpu'
 
 # Simulation environment
 # light
@@ -63,21 +63,19 @@ plt.ylabel('y (nm)')
 plt.colorbar()
 
 # Generate and perform simulation
-#for order_N in range(26):
-order_N = 6
-order = [order_N,order_N]
-sim = torcwa.rcwa(freq=1/lamb0,order=order,L=L,dtype=sim_dtype,device=device)
-sim.add_input_layer(eps=substrate_eps)
-sim.set_incident_angle(inc_ang=inc_ang,azi_ang=azi_ang)
-sim.add_layer(thickness=layer0_thickness,eps=layer0_eps)
-sim.solve_global_smatrix()
-tss = sim.S_parameters(orders=[0,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
-tpp = sim.S_parameters(orders=[0,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
+"""for order_N in range(26):
+    order = [order_N,order_N]
+    sim = torcwa.rcwa(freq=1/lamb0,order=order,L=L,dtype=sim_dtype,device=device)
+    sim.add_input_layer(eps=substrate_eps)
+    sim.set_incident_angle(inc_ang=inc_ang,azi_ang=azi_ang)
+    sim.add_layer(thickness=layer0_thickness,eps=layer0_eps)
+    sim.solve_global_smatrix()
+    tss = sim.S_parameters(orders=[0,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
+    tpp = sim.S_parameters(orders=[0,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
+    
+    ex2_data = {'tss':tss.cpu().numpy(),'tpp':tpp.cpu().numpy()}
+    scipy.io.savemat('Example2_t_data_order_'+str(order_N)+'.mat',ex2_data)"""
 
-ex2_data = {'tss':tss.cpu().numpy(),'tpp':tpp.cpu().numpy()}
-print(ex2_data)
-scipy.io.savemat('Example2_t_data_order_'+str(order_N)+'.mat',ex2_data)
-"""
 # Generate and perform simulation
 lamb0 = torch.tensor(532.,dtype=geo_dtype,device=device)    # nm
 
@@ -215,4 +213,6 @@ fig.colorbar(im3,ax=axes[0,3])
 fig.colorbar(im4,ax=axes[1,0])
 fig.colorbar(im5,ax=axes[1,1])
 fig.colorbar(im6,ax=axes[1,2])
-fig.colorbar(im7,ax=axes[1,3])"""
+fig.colorbar(im7,ax=axes[1,3])
+
+plt.show()

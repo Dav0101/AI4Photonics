@@ -22,7 +22,7 @@ device = torch.device('cuda')
 # Simulation environment
 # light
 lamb0 = torch.tensor(600.,dtype=geo_dtype,device=device)    # nm
-theta = 0.01*(np.pi/180)    # radian
+theta = 10.01*(np.pi/180)    # radian
 phi = 0.*(np.pi/180)    # radian
 
 # material
@@ -65,8 +65,8 @@ pp = []
 sp = []
 ps = []
 
-for k in range(600,1051,50):
-    lamb0 = torch.tensor(float(k),dtype=geo_dtype,device=device)    # nm
+for k in range(0,360,10):
+    phi = float(k)*(np.pi/180)
     order = [10,4]
     sim = torcwa.rcwa(freq=1/lamb0,order=order,L=L,dtype=sim_dtype,device=device)
     sim.add_input_layer(eps=substrate_eps)
