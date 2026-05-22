@@ -26,9 +26,9 @@ device = 'cpu'
 
 # Simulation environment
 # light
-lamb0 = torch.tensor(600.,dtype=geo_dtype,device=device)    # nm
-inc_ang = 10.01*(np.pi/180)    # radian
-azi_ang = 0.*(np.pi/180)    # radian
+lamb0 = torch.tensor(950.,dtype=geo_dtype,device=device)    # nm
+theta = 10.01*(np.pi/180)    # radian
+phi = 0.*(np.pi/180)    # radian
 
 # material
 substrate_eps = 1.46**2
@@ -67,11 +67,11 @@ plt.show()
 data={}
 
 for phi in range(0,360,10):
-    azi_ang = float(phi)*(np.pi/180)
+    phi = float(phi)*(np.pi/180)
     order = [10,4]
     sim = torcwa.rcwa(freq=1/lamb0,order=order,L=L,dtype=sim_dtype,device=device)
     sim.add_input_layer(eps=substrate_eps)
-    sim.set_incident_angle(inc_ang=inc_ang,azi_ang=azi_ang)
+    sim.set_incident_angle(inc_ang=theta,azi_ang=phi)
     layer0_eps = rho*silicon_eps + (1.-rho)
     sim.add_layer(thickness=layer0_thickness,eps=layer0_eps)
     sim.solve_global_smatrix()
@@ -81,4 +81,4 @@ for phi in range(0,360,10):
     t1ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
     data[str(phi)] = {'tss':t1ss.cpu().numpy(),'tpp':t1pp.cpu().numpy(), 'tsp':t1sp.cpu().numpy(),'tps':t1ps.cpu().numpy()}
 
-scipy.io.savemat('data.mat',data)
+scipy.io.savemat(f'{lamb0}_{theta}.mat',data)
