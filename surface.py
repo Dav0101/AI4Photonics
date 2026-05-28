@@ -37,8 +37,7 @@ class MSshaper(nn.Module):
         x = F.relu(self.conv2(x))
         x = F.sigmoid(self.conv3(x))
         
-        x = self.fc2(x) # Niente softmax qui se usiamo CrossEntropyLoss (la include già)
         return x
     
 model = MSshaper()
-loss =
+loss = None
