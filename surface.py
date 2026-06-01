@@ -70,22 +70,28 @@ class rcwa_solver():
         # layers
         self.layer0_thickness = 300.
 
+    # this returns the scattering matrix for the chosen deflection and incident orders
     def solve(self, rho, phi):
+        # radius for m and n respectively
         order = [10,4]
+
         sim = torcwa.rcwa(freq=1/self.lamb0,order=order,L=self.L,dtype=self.sim_dtype,device=self.device)
         sim.add_input_layer(eps=self.substrate_eps)
         sim.set_incident_angle(inc_ang=self.theta,azi_ang=phi)
-        layer0_eps = rho*self.silicon_eps + (1.-rho)
-        sim.add_layer(thickness=self.layer0_thickness,eps=layer0_eps)
+        epsilon = rho*self.silicon_eps + (1.-rho)
+        sim.add_layer(thickness=self.layer0_thickness,eps=epsilon)
+
         sim.solve_global_smatrix()
-        x = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
-        ss.append(x.cpu().numpy())
-        x = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
-        pp.append(x.cpu().numpy())
-        x = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
-        sp.append(x.cpu().numpy())
-        x = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
-        ps.append(x.cpu().numpy())
+        S_ss = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
+        S_pp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
+        S_sp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
+        S_ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
+
+        return torch.tensor([[S_ss,S_ps],
+                [S_sp,S_pp]], dtype=self.sim_dtype)
+    
+def armonic_mean(x):
+    return 1.0 / torch.mean(1.0 / x)
 
 
 if __name__ == '__main__':
@@ -96,7 +102,6 @@ if __name__ == '__main__':
 
     model = MSshaper()
     solver = rcwa_solver(device)
-
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     model.to(device)
@@ -110,7 +115,7 @@ if __name__ == '__main__':
     # in every epoch, 360 different azimuthal angles are tested
     for epoch in range(epochs):
         model.train()
-        singular_values = []
+        min_singular_values = []
 
         optimizer.zero_grad()
         
@@ -122,11 +127,17 @@ if __name__ == '__main__':
             
             # the net produce the surface that must be given to torcwa
             conv_rho = model(rho)
+
+            # torcwa solver extracts the 2x2 scattering tensor
+            S_matrix = solver.solve(conv_rho,phi)
+
+            # singular values of the tensor
+            singular_values = torch.linalg.svdvals(S_matrix)
             
             # the torcwa based solver extracts the singular values
-            singular_values.append(solver.solve(rho,phi))          # smallest of the two singular values
+            min_singular_values.append(singular_values[-1].items())          # smallest of the two singular values
 
-        loss = armonic(singular_values)
+        loss = -armonic_mean(min_singular_values)
         
         loss.backward()
         optimizer.step()
