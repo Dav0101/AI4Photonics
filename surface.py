@@ -35,10 +35,13 @@ class MSshaper(nn.Module):
             padding=1
         )
 
+        self.beta = 1000.0
+
     def forward(self, x):
         x = F.leaky_relu(self.conv1(x))
         x = F.leaky_relu(self.conv2(x))
-        x = F.sigmoid(self.conv3(x))
+        print(x)
+        x = F.sigmoid(x * self.beta)
         
         return x
     
@@ -49,7 +52,7 @@ class rcwa_solver():
         # light
         self.sim_dtype = torch.complex64
         geo_dtype = torch.float32
-        self.lamb0 = torch.tensor(600.,dtype=geo_dtype,device=device)    # nm
+        self.lamb0 = torch.tensor(1000.,dtype=geo_dtype,device=device)    # nm
         self.theta = 10.01*(np.pi/180)    # radian
 
         # material
@@ -84,6 +87,7 @@ class rcwa_solver():
 
         sim.solve_global_smatrix()
         S_ss = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
+        print(S_ss)
         S_pp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
         S_sp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
         S_ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
@@ -112,7 +116,7 @@ if __name__ == '__main__':
     initial_rho = torch.randint(low=0, high=2, size=(2048,1024))
     rho = nn.parameter.Parameter(initial_rho.float())
 
-    epochs = 10
+    epochs = 100
 
     # in every epoch, 360 different azimuthal angles are tested
     for epoch in range(epochs):
@@ -129,8 +133,9 @@ if __name__ == '__main__':
         # when we use conv2d
         rho_input = rho_dev.unsqueeze(0).unsqueeze(0)
         conv_rho = model(rho_input).squeeze(0).squeeze(0)
+        print(conv_rho)
         
-        for phi_deg in range(360):
+        for phi_deg in range(0,360,20):
             # conversion to radians
             phi = float(phi_deg)*(np.pi/180)
 
