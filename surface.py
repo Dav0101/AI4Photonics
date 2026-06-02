@@ -34,14 +34,22 @@ class MSshaper(nn.Module):
             stride=2,
             padding=1
         )
+        nn.init.normal_(self.conv1.weight, mean=0.0, std=0.5)
+        nn.init.normal_(self.conv2.weight, mean=0.0, std=0.5)
+        nn.init.normal_(self.conv3.weight, mean=0.0, std=0.5)
 
-        self.beta = 1000.0
+        self.beta = 100.0
 
     def forward(self, x):
+        print(x)
         x = F.leaky_relu(self.conv1(x))
+        print(x)
         x = F.leaky_relu(self.conv2(x))
         print(x)
+        x = self.conv3(x)
+        x = x - x.mean()
         x = F.sigmoid(x * self.beta)
+        print(x)
         
         return x
     
@@ -52,7 +60,7 @@ class rcwa_solver():
         # light
         self.sim_dtype = torch.complex64
         geo_dtype = torch.float32
-        self.lamb0 = torch.tensor(1000.,dtype=geo_dtype,device=device)    # nm
+        self.lamb0 = torch.tensor(150.,dtype=geo_dtype,device=device)    # nm
         self.theta = 10.01*(np.pi/180)    # radian
 
         # material
@@ -133,7 +141,6 @@ if __name__ == '__main__':
         # when we use conv2d
         rho_input = rho_dev.unsqueeze(0).unsqueeze(0)
         conv_rho = model(rho_input).squeeze(0).squeeze(0)
-        print(conv_rho)
         
         for phi_deg in range(0,360,20):
             # conversion to radians
