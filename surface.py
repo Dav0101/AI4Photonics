@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 import torcwa
+from matplotlib import pyplot as plt
 
 class MSshaper(nn.Module):
     def __init__(self):
@@ -87,8 +88,9 @@ class rcwa_solver():
         S_sp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
         S_ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
 
-        return torch.tensor([[S_ss,S_ps],
-                [S_sp,S_pp]], dtype=self.sim_dtype)
+        row1 = torch.stack([S_ss, S_ps])
+        row2 = torch.stack([S_sp, S_pp])
+        return torch.stack([row1, row2])
     
 def armonic_mean(x):
     return 1.0 / torch.mean(1.0 / x)
@@ -108,7 +110,7 @@ if __name__ == '__main__':
 
     # rho: binary tensor of size 2048 x 1024
     initial_rho = torch.randint(low=0, high=2, size=(2048,1024))
-    rho = nn.parameter.Parameter(initial_rho)
+    rho = nn.parameter.Parameter(initial_rho.float())
 
     epochs = 10
 
@@ -123,10 +125,13 @@ if __name__ == '__main__':
             # conversion to radians
             phi = float(phi_deg)*(np.pi/180)
             # moving the surface on the GPU (or CPU)
-            rho = rho.to(device)
+            rho_dev = rho.to(device)
             
             # the net produce the surface that must be given to torcwa
-            conv_rho = model(rho)
+            # it's necessary to add the dimensions 1 for channels and for batch
+            # when we use conv2d
+            rho_input = rho_dev.unsqueeze(0).unsqueeze(0)
+            conv_rho = model(rho_input).squeeze(0).squeeze(0)
 
             # torcwa solver extracts the 2x2 scattering tensor
             S_matrix = solver.solve(conv_rho,phi)
@@ -135,11 +140,29 @@ if __name__ == '__main__':
             singular_values = torch.linalg.svdvals(S_matrix)
             
             # the torcwa based solver extracts the singular values
-            min_singular_values.append(singular_values[-1].items())          # smallest of the two singular values
+            min_singular_values.append(singular_values[-1])          # smallest of the two singular values
 
+        # conver the singular values in a single 1D tensor
+        min_singular_values = torch.stack(min_singular_values)
         loss = -armonic_mean(min_singular_values)
         
         loss.backward()
         optimizer.step()
             
         print(f"Epoca {epoch+1}/{epochs} - Loss: {loss:.4f}")
+
+    # plotting the suface
+    x_axis = torcwa.rcwa_geo.x.cpu()
+    y_axis = torcwa.rcwa_geo.y.cpu()
+    plt.imshow(torch.transpose(rho,-2,-1).cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]])
+    plt.title('Layer 0')
+    plt.xlim([0,torcwa.rcwa_geo.Lx])
+    plt.xlabel('x (nm)')
+    plt.ylim([0,torcwa.rcwa_geo.Ly])
+    plt.ylabel('y (nm)')
+    plt.colorbar()
+    plt.show()
+
+    # save the model
+    torch.save(model.state_dict(), 'metasurface_model.pth')
+    torch.save(rho.data, 'ottimizzato_rho.pt')
