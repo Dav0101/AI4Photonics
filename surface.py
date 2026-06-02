@@ -36,8 +36,8 @@ class MSshaper(nn.Module):
         )
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
+        x = F.leaky_relu(self.conv1(x))
+        x = F.leaky_relu(self.conv2(x))
         x = F.sigmoid(self.conv3(x))
         
         return x
@@ -120,18 +120,19 @@ if __name__ == '__main__':
         min_singular_values = []
 
         optimizer.zero_grad()
+
+        # moving the surface on the GPU (or CPU)
+        rho_dev = rho.to(device)
+        
+        # the net produce the surface that must be given to torcwa
+        # it's necessary to add the dimensions 1 for channels and for batch
+        # when we use conv2d
+        rho_input = rho_dev.unsqueeze(0).unsqueeze(0)
+        conv_rho = model(rho_input).squeeze(0).squeeze(0)
         
         for phi_deg in range(360):
             # conversion to radians
             phi = float(phi_deg)*(np.pi/180)
-            # moving the surface on the GPU (or CPU)
-            rho_dev = rho.to(device)
-            
-            # the net produce the surface that must be given to torcwa
-            # it's necessary to add the dimensions 1 for channels and for batch
-            # when we use conv2d
-            rho_input = rho_dev.unsqueeze(0).unsqueeze(0)
-            conv_rho = model(rho_input).squeeze(0).squeeze(0)
 
             # torcwa solver extracts the 2x2 scattering tensor
             S_matrix = solver.solve(conv_rho,phi)
