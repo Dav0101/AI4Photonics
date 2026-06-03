@@ -60,7 +60,7 @@ class rcwa_solver():
         # light
         self.sim_dtype = torch.complex64
         geo_dtype = torch.float32
-        self.lamb0 = torch.tensor(150.,dtype=geo_dtype,device=device)    # nm
+        self.lamb0 = torch.tensor(600.,dtype=geo_dtype,device=device)    # nm
         self.theta = 10.01*(np.pi/180)    # radian
 
         # material
@@ -69,7 +69,7 @@ class rcwa_solver():
         self.silicon_eps = 3.5**2
 
         # geometry
-        self.L = [256., 128.]            # nm / nm
+        self.L = [2048., 1024.]            # nm / nm
         torcwa.rcwa_geo.dtype = geo_dtype
         torcwa.rcwa_geo.device = device
         torcwa.rcwa_geo.Lx = self.L[0]
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     initial_rho = torch.randint(low=0, high=2, size=(2048,1024))
     rho = nn.parameter.Parameter(initial_rho.float())
 
-    epochs = 100
+    epochs = 20
 
     # in every epoch, 360 different azimuthal angles are tested
     for epoch in range(epochs):
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     # plotting the suface
     x_axis = torcwa.rcwa_geo.x.cpu()
     y_axis = torcwa.rcwa_geo.y.cpu()
-    plt.imshow(torch.transpose(rho,-2,-1).cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]])
+    plt.imshow(torch.transpose(rho,-2,-1).detach().cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]])
     plt.title('Layer 0')
     plt.xlim([0,torcwa.rcwa_geo.Lx])
     plt.xlabel('x (nm)')
