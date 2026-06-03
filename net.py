@@ -56,7 +56,7 @@ class ConvNetRCWA(nn.Module):
             singular_values = torch.linalg.svdvals(jones_matrix)
             sigmas.append(torch.min(singular_values))
 
-        return rho.squeeze(0), sigmas
+        return rho.squeeze(0), torch.stack(sigmas)
 
 
 if __name__ == '__main__':
