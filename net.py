@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from torch import Tensor
 import torcwa
 import numpy as np
+import loss.py as lf
 
 
 def gumbel_sigmoid(logits: Tensor, tau: float = 1, hard: bool = False, threshold: float = 0.5) -> Tensor:
@@ -118,8 +120,20 @@ if __name__ == '__main__':
     model = ConvNetRCWA(n=2, m=3, step=36)
     model = model.to(device)
     solver = rcwa_solver(device)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    r, v = model(solver)
+    epochs = 100
 
-    print(r.shape)
-    print(v)
+    for epoch in range(epochs):
+        model.train()
+        optimizer.zero_grad()
+
+        r, v = model(solver)
+        print(r.shape)
+        print(v)
+
+        loss = -lf.harmonic_mean(v)
+        loss.backward()
+        optimizer.step()
+            
+        print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
