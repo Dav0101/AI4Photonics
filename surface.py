@@ -177,5 +177,5 @@ if __name__ == '__main__':
     plt.show()
 
     # save the model
-    torch.save(model.state_dict(), 'metasurface_model.pth')
-    torch.save(rho.data, 'ottimizzato_rho.pt')
+    torch.save(model.state_dict(), 'model.pth')
+    torch.save(rho.data, 'rho.pt')
