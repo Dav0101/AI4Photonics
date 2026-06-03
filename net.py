@@ -58,7 +58,7 @@ class rcwa_solver():
         self.layer0_thickness = 300.
 
     # this returns the scattering matrix for the chosen deflection and incident orders
-    def solve(self, rho, phi):
+    def solve(self, rho: Tensor, phi: float) -> Tensor:
         # radius for m and n respectively
         order = [10,4]
 
@@ -88,7 +88,7 @@ class ConvNetRCWA(nn.Module):
         self.m = m
         self.step = step
 
-        self.register_buffer("angles", torch.arange(0, 360, step))
+        self.register_buffer("angles", torch.arange(0, 360, step, dtype=torch.float32))
         self.register_buffer("initial_rho", torch.rand(1, 2 ** n, 2 ** m))
 
         self.net = nn.Sequential(
@@ -105,7 +105,7 @@ class ConvNetRCWA(nn.Module):
         rho = gumbel_sigmoid(self.net(self.initial_rho), hard=True)
         sigmas = []
 
-        for angle in self.angles:
+        for angle in self.angles.tolist():
             jones_matrix = solver.solve(rho, angle)
             singular_values = torch.linalg.svdvals(jones_matrix)
             sigmas.append(torch.min(singular_values))
