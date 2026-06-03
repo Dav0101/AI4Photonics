@@ -16,7 +16,7 @@ import torcwa
 torch.backends.cuda.matmul.allow_tf32 = False
 sim_dtype = torch.complex64
 geo_dtype = torch.float32
-device = torch.device('cuda')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #device = 'cpu'
 
 # Simulation environment
@@ -65,7 +65,7 @@ pp = []
 sp = []
 ps = []
 
-for k in range(0,360,10):
+for k in range(0,360,380):
     phi = float(k)*(np.pi/180)
     order = [10,4]
     sim = torcwa.rcwa(freq=1/lamb0,order=order,L=L,dtype=sim_dtype,device=device)
@@ -84,5 +84,6 @@ for k in range(0,360,10):
     ps.append(x.cpu().numpy())
     
 data = {'ss': ss, 'pp': pp, 'sp': sp, 'ps': ps}
+print(data)
 
 scipy.io.savemat(f'test.mat', data)

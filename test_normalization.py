@@ -8,7 +8,7 @@ torch.backends.cuda.matmul.allow_tf32 = False
 sim_dtype = torch.complex64
 geo_dtype = torch.float32
 #device = torch.device('cuda')
-device = 'cpu'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 lam_min = 400.
 lam_max = 600.

@@ -19,7 +19,7 @@ import Materials
 torch.backends.cuda.matmul.allow_tf32 = False
 sim_dtype = torch.complex64
 geo_dtype = torch.float32
-device = torch.device('cuda')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #device = 'cpu'
 
 # Simulation environment
@@ -101,6 +101,8 @@ rho_history = []
 FoM_history = []
 
 start_time = time.time()
+rho_tilda = None
+
 for it in range(0,iter_max):
     rho.requires_grad_(True)
     rho_fft = torch.fft.fftshift(torch.fft.fft2(torch.fft.ifftshift(rho)))
@@ -132,7 +134,6 @@ for it in range(0,iter_max):
 
 plt.plot(np.array(FoM_history))
 
-
 # Export data
 filename = 'Example6_data.mat'
 ex6_data = {'rho_history':rho_history,'FoM_history':FoM_history}
@@ -141,7 +142,6 @@ scipy.io.savemat(filename,ex6_data)
 # Plot
 plt.imshow(rho_tilda.detach().cpu().numpy())
 plt.colorbar()
-
 
 # Field calculation
 z = torch.linspace(-500,1500,501,device=device)
