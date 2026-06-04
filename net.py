@@ -72,14 +72,16 @@ class rcwa_solver():
 
         sim.solve_global_smatrix()
         S_ss = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ss',ref_order=[0,0])
-        print(S_ss)
         S_pp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='pp',ref_order=[0,0])
         S_sp = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='sp',ref_order=[0,0])
         S_ps = sim.S_parameters(orders=[1,0],direction='forward',port='transmission',polarization='ps',ref_order=[0,0])
 
         row1 = torch.stack([S_ss, S_ps])
         row2 = torch.stack([S_sp, S_pp])
-        return torch.stack([row1, row2])
+        jones_matrix = torch.stack([row1, row2])
+        print(jones_matrix)
+
+        return jones_matrix
 
 
 class ConvNetRCWA(nn.Module):
