@@ -4,7 +4,7 @@ import torch.optim as optim
 from torch import Tensor
 import torcwa
 import numpy as np
-import loss.py as lf
+import loss as lf
 
 
 def gumbel_sigmoid(logits: Tensor, tau: float = 1, hard: bool = False, threshold: float = 0.5) -> Tensor:
@@ -37,7 +37,7 @@ class rcwa_solver():
         # light
         self.sim_dtype = torch.complex64
         geo_dtype = torch.float32
-        self.lamb0 = torch.tensor(600.,dtype=geo_dtype,device=device)    # nm
+        self.lamb0 = torch.tensor(1550.,dtype=geo_dtype,device=device)    # nm
         self.theta = 10.01*(np.pi/180)    # radian
 
         # material
@@ -46,7 +46,7 @@ class rcwa_solver():
         self.silicon_eps = 3.5**2
 
         # geometry
-        self.L = [2048., 1024.]            # nm / nm
+        self.L = [4531., 1000.]            # nm / nm
         torcwa.rcwa_geo.dtype = geo_dtype
         torcwa.rcwa_geo.device = device
         torcwa.rcwa_geo.Lx = self.L[0]
@@ -88,25 +88,23 @@ class ConvNetRCWA(nn.Module):
     def __init__(self, n, m, step):
         super().__init__()
 
-        self.n = n
-        self.m = m
-        self.step = step
-
         self.register_buffer("angles", torch.arange(0, 360, step, dtype=torch.float32))
         self.register_buffer("initial_rho", torch.rand(1, 2 ** n, 2 ** m))
 
         self.net = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, padding=1),
+            nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
-            nn.Conv2d(32, 1, kernel_size=3, padding=1)
+            nn.Conv2d(32, 1, kernel_size=3, stride=2, padding=1)
         )
 
     def forward(self, solver):
-        rho = gumbel_sigmoid(self.net(self.initial_rho), hard=True)
+        # squeeze removes the first dimension (channels=1)
+        rho = gumbel_sigmoid(self.net(self.initial_rho), hard=True).squeeze(0)
+        print(rho)
         sigmas = []
 
         for angle in self.angles.tolist():
@@ -119,7 +117,7 @@ class ConvNetRCWA(nn.Module):
 
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = ConvNetRCWA(n=2, m=3, step=36)
+    model = ConvNetRCWA(n=11, m=10, step=36)
     model = model.to(device)
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
