@@ -16,7 +16,7 @@ def geometric_mean(v: Tensor):
 
 
 def harmonic_mean(v: Tensor):
-    return v.numel() / torch.sum(1.0 / v)
+    return v.numel() / torch.sum(1.0 / v + 1e-6)
 
 
 def rcwa_loss(rho, sigmas, alpha=1):

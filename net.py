@@ -4,6 +4,7 @@ import torch.optim as optim
 from torch import Tensor
 import torcwa
 import numpy as np
+from matplotlib import pyplot as plt
 import loss as lf
 
 
@@ -15,9 +16,11 @@ def gumbel_sigmoid(logits: Tensor, tau: float = 1, hard: bool = False, threshold
     y_soft = gumbels.sigmoid()
 
     if hard:
-        indices = (y_soft > threshold).nonzero(as_tuple=True)
+        """indices = (y_soft > threshold).nonzero(as_tuple=True)
         y_hard = torch.zeros_like(logits, memory_format=torch.legacy_contiguous_format)
-        y_hard[indices[0], indices[1]] = 1.0
+        y_hard[indices[0], indices[1]] = 1.0"""
+        y_hard = (y_soft > threshold).to(logits.dtype)
+
         ret = y_hard - y_soft.detach() + y_soft
     else:
         ret = y_soft
@@ -89,7 +92,7 @@ class ConvNetRCWA(nn.Module):
         super().__init__()
 
         self.register_buffer("angles", torch.arange(0, 360, step, dtype=torch.float32))
-        self.register_buffer("initial_rho", torch.rand(1, 2 ** n, 2 ** m))
+        self.register_buffer("initial_rho", nn.Parameter(torch.rand(1, 2 ** n, 2 ** m)))
 
         self.net = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
@@ -101,7 +104,11 @@ class ConvNetRCWA(nn.Module):
             nn.Conv2d(32, 1, kernel_size=3, stride=2, padding=1)
         )
 
+        #self.threshold = nn.Parameter(torch.tensor(0.0))
+
     def forward(self, solver):
+        """logits = self.net(self.initial_rho)
+        balanced_logits = (logits - logits.mean()) + self.threshold"""
         # squeeze removes the first dimension (channels=1)
         rho = gumbel_sigmoid(self.net(self.initial_rho), hard=True).squeeze(0)
         print(rho)
@@ -137,3 +144,6 @@ if __name__ == '__main__':
         optimizer.step()
             
         print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
+
+    # save the model
+    torch.save(model.state_dict(), 'model.pth')
