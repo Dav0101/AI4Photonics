@@ -129,6 +129,8 @@ if __name__ == '__main__':
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+    loss_plot = []
+
     epochs = 100
 
     for epoch in range(epochs):
@@ -140,10 +142,17 @@ if __name__ == '__main__':
         print(v)
 
         loss = -lf.harmonic_mean(v)
+        loss_plot.append(loss.item())
         loss.backward()
         optimizer.step()
             
         print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
 
+    # plot the model
+    plt.plot([i for i in range(epochs)], loss_plot)
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.savefig("loss.png", dpi=300, bbox_inches="tight")
+    plt.show()
     # save the model
     torch.save(model.state_dict(), 'model.pth')
