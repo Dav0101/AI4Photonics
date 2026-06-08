@@ -124,7 +124,7 @@ class ConvNetRCWA(nn.Module):
 
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = ConvNetRCWA(n=11, m=10, step=36)
+    model = ConvNetRCWA(n=11, m=10, step=360)
     model = model.to(device)
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
