@@ -129,10 +129,10 @@ if __name__ == '__main__':
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state'])
         best_loss = checkpoint['best_loss']
-        lr = 0.00001
+        lr = 0.000001
     else:
         best_loss = float('inf')
-        lr = 0.0001
+        lr = 0.00001
 
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.9))
@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     loss_plot = []
 
-    epochs = 300
+    epochs = 2000
 
     for epoch in range(epochs):
         model.train()
