@@ -5,6 +5,7 @@ from torch import Tensor
 import torcwa
 import numpy as np
 from matplotlib import pyplot as plt
+import os
 import loss as lf
 
 
@@ -26,11 +27,6 @@ def gumbel_sigmoid(logits: Tensor, tau: float = 1, hard: bool = False, threshold
         ret = y_soft
 
     return ret
-
-
-def rcwa(rho : Tensor, angle : Tensor) -> Tensor:
-    # TODO Placeholder
-    return torch.tensor([[1+2j, 3-1j], [4+0j, 5+2j]], dtype=torch.complex64, device=rho.device)
 
 
 class rcwa_solver():
@@ -126,12 +122,25 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ConvNetRCWA(n=11, m=10, step=360)
     model = model.to(device)
+
+    # if there is a good model already found, load it.
+    checkpoint_path = 'best_model.pth'
+    if os.path.exists(checkpoint_path):
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(checkpoint['model_state'])
+        best_loss = checkpoint['best_loss']
+        lr = 0.00001
+    else:
+        best_loss = float('inf')
+        lr = 0.0001
+
     solver = rcwa_solver(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.9))
+    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=5)
 
     loss_plot = []
 
-    epochs = 100
+    epochs = 300
 
     for epoch in range(epochs):
         model.train()
@@ -144,15 +153,27 @@ if __name__ == '__main__':
         loss = -lf.harmonic_mean(v)
         loss_plot.append(loss.item())
         loss.backward()
+        # clipping the gradient
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.05)
         optimizer.step()
-            
+        #scheduler.step(loss.item())
+        
         print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
 
-    # plot the model
+        if loss.item() < best_loss:
+            best_loss = loss.item()
+            checkpoint = {
+                'epoch': epoch,
+                'best_loss': best_loss,
+                'model_state': model.state_dict()
+            }
+            torch.save(checkpoint, 'best_model.pth')
+
+    # plot the loss
     plt.plot([i for i in range(epochs)], loss_plot)
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.savefig("loss.png", dpi=300, bbox_inches="tight")
     plt.show()
     # save the model
-    torch.save(model.state_dict(), 'model.pth')
+    #torch.save(model.state_dict(), 'model.pth')
