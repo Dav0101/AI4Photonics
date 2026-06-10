@@ -102,11 +102,11 @@ class ConvNetRCWA(nn.Module):
 
         #self.threshold = nn.Parameter(torch.tensor(0.0))
 
-    def forward(self, solver):
+    def forward(self, solver, tau=1.0):
         """logits = self.net(self.initial_rho)
         balanced_logits = (logits - logits.mean()) + self.threshold"""
         # squeeze removes the first dimension (channels=1)
-        rho = gumbel_sigmoid(self.net(self.initial_rho), hard=True).squeeze(0)
+        rho = gumbel_sigmoid(self.net(self.initial_rho), tau=tau, hard=True).squeeze(0)
         print(rho)
         sigmas = []
 
@@ -129,10 +129,10 @@ if __name__ == '__main__':
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state'])
         best_loss = checkpoint['best_loss']
-        lr = 0.000001
+        lr = 0.0001
     else:
         best_loss = float('inf')
-        lr = 0.00001
+        lr = 0.001
 
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.9))
@@ -146,7 +146,9 @@ if __name__ == '__main__':
         model.train()
         optimizer.zero_grad()
 
-        r, v = model(solver)
+        current_tau = max(0.1, 3.0 * (0.98 ** epoch))
+
+        r, v = model(solver, tau=current_tau)
         print(r.shape)
         print(v)
 
