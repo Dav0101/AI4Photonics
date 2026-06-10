@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.9))
-    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=5)
+    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=50)
 
     loss_plot = []
 
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         model.train()
         optimizer.zero_grad()
 
-        current_tau = max(0.1, 3.0 * (0.98 ** epoch))
+        current_tau = max(0.1, 3.0 * (0.998 ** epoch))
 
         r, v = model(solver, tau=current_tau)
         print(r.shape)
