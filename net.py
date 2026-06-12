@@ -36,8 +36,9 @@ class rcwa_solver():
         # light
         self.sim_dtype = torch.complex64
         geo_dtype = torch.float32
-        self.lamb0 = torch.tensor(1550.,dtype=geo_dtype,device=device)    # nm
-        self.theta = 10.01*(np.pi/180)    # radian
+        #self.lamb0 = torch.tensor(1550.,dtype=geo_dtype,device=device)    # nm
+        self.lamb0 = torch.tensor(1050.,dtype=geo_dtype,device=device)    # nm
+        self.theta = 0.01*(np.pi/180)    # radian
 
         # material
         self.substrate_eps = 1.46**2
@@ -45,7 +46,13 @@ class rcwa_solver():
         self.silicon_eps = 3.5**2
 
         # geometry
-        self.L = [4531., 1000.]            # nm / nm
+        #self.L = [4531., 1000.]            # nm / nm
+        self.L = [1087., 525.]            # nm / nm
+
+        # layers
+        self.layer0_thickness = 300.
+
+        # geometry for the plot
         torcwa.rcwa_geo.dtype = geo_dtype
         torcwa.rcwa_geo.device = device
         torcwa.rcwa_geo.Lx = self.L[0]
@@ -54,9 +61,6 @@ class rcwa_solver():
         torcwa.rcwa_geo.ny = 128
         torcwa.rcwa_geo.grid()
         torcwa.rcwa_geo.edge_sharpness = 1000.
-
-        # layers
-        self.layer0_thickness = 300.
 
     # this returns the scattering matrix for the chosen deflection and incident orders
     def solve(self, rho: Tensor, phi: float) -> Tensor:
@@ -124,7 +128,7 @@ if __name__ == '__main__':
     model = model.to(device)
 
     # if there is a good model already found, load it.
-    checkpoint_path = 'best_model.pth'
+    """checkpoint_path = 'best_model.pth'
     if os.path.exists(checkpoint_path):
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state'])
@@ -132,11 +136,11 @@ if __name__ == '__main__':
         lr = 0.0001
     else:
         best_loss = float('inf')
-        lr = 0.001
+        lr = 0.001"""
 
     solver = rcwa_solver(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.9))
-    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=50)
+    optimizer = optim.Adam(model.parameters(), lr=0.01, betas=(0.5, 0.9))
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=100, min_lr=1e-6)
 
     loss_plot = []
 
@@ -158,24 +162,38 @@ if __name__ == '__main__':
         # clipping the gradient
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.05)
         optimizer.step()
-        #scheduler.step(loss.item())
+        # reduce the learning rate
+        scheduler.step(loss.item())
         
         print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
 
-        if loss.item() < best_loss:
+        """if loss.item() < best_loss:
             best_loss = loss.item()
             checkpoint = {
                 'epoch': epoch,
                 'best_loss': best_loss,
                 'model_state': model.state_dict()
             }
-            torch.save(checkpoint, 'best_model.pth')
+            torch.save(checkpoint, 'best_model.pth')"""
 
     # plot the loss
-    plt.plot([i for i in range(epochs)], loss_plot)
+    plt.figure()
+    plt.plot(range(epochs), loss_plot)
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.savefig("loss.png", dpi=300, bbox_inches="tight")
     plt.show()
+
+    # plot the surface
+    plt.figure()
+    x_axis = torcwa.rcwa_geo.x.cpu().numpy()
+    y_axis = torcwa.rcwa_geo.y.cpu().numpy()
+    plt.imshow(torch.transpose(r,-2,-1).detach().cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]])
+    plt.xlim([0,torcwa.rcwa_geo.Lx])
+    plt.ylim([0,torcwa.rcwa_geo.Ly])
+    plt.colorbar()
+    plt.savefig("rho.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
     # save the model
-    #torch.save(model.state_dict(), 'model.pth')
+    torch.save(model.state_dict(), 'model.pth')
