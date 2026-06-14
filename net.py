@@ -137,20 +137,21 @@ if __name__ == '__main__':
     else:
         best_loss = float('inf')
         lr = 0.001"""
+    
+    epochs = 2000
 
     solver = rcwa_solver(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.01, betas=(0.5, 0.9))
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=100, min_lr=1e-6)
+    optimizer = optim.Adam(model.parameters(), lr=0.002, betas=(0.5, 0.9))
+    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=100, min_lr=1e-6)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     loss_plot = []
-
-    epochs = 2000
 
     for epoch in range(epochs):
         model.train()
         optimizer.zero_grad()
 
-        current_tau = max(0.1, 3.0 * (0.998 ** epoch))
+        current_tau = max(0.1, 3.0 * (0.999 ** epoch))
 
         r, v = model(solver, tau=current_tau)
         print(r.shape)
