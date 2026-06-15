@@ -95,12 +95,27 @@ class ConvNetRCWA(nn.Module):
         self.register_buffer("initial_rho", nn.Parameter(torch.rand(1, 2 ** n, 2 ** m)))
 
         self.net = nn.Sequential(
+            # fist halving, reasoning
             nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
+            nn.InstanceNorm2d(16),
             nn.ReLU(),
 
-            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
+            # reasoning
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding='same'),
+            nn.InstanceNorm2d(32),
             nn.ReLU(),
 
+            # second halving
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            nn.InstanceNorm2d(64),
+            nn.ReLU(),
+
+            # reasoning
+            nn.Conv2d(64, 32, kernel_size=3, stride=1, padding='same'),
+            nn.InstanceNorm2d(32),
+            nn.ReLU(),
+
+            # last halving
             nn.Conv2d(32, 1, kernel_size=3, stride=2, padding=1)
         )
 
@@ -138,20 +153,21 @@ if __name__ == '__main__':
         best_loss = float('inf')
         lr = 0.001"""
     
-    epochs = 2000
+    epochs = 1000
 
     solver = rcwa_solver(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.002, betas=(0.5, 0.9))
+    optimizer = optim.Adam(model.parameters(), lr=0.0003, betas=(0.5, 0.9))
     #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=100, min_lr=1e-6)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     loss_plot = []
+    best_loss = float('inf')
 
     for epoch in range(epochs):
         model.train()
         optimizer.zero_grad()
 
-        current_tau = max(0.1, 3.0 * (0.999 ** epoch))
+        current_tau = max(0.1, 3.0 * (0.995 ** epoch))
 
         r, v = model(solver, tau=current_tau)
         print(r.shape)
@@ -168,14 +184,15 @@ if __name__ == '__main__':
         
         print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
 
-        """if loss.item() < best_loss:
+        if loss.item() < best_loss:
             best_loss = loss.item()
             checkpoint = {
-                'epoch': epoch,
                 'best_loss': best_loss,
                 'model_state': model.state_dict()
             }
-            torch.save(checkpoint, 'best_model.pth')"""
+            torch.save(checkpoint, 'best_model.pth')
+
+    print(best_loss)
 
     # plot the loss
     plt.figure()
@@ -195,6 +212,3 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.savefig("rho.png", dpi=300, bbox_inches="tight")
     plt.show()
-
-    # save the model
-    torch.save(model.state_dict(), 'model.pth')
