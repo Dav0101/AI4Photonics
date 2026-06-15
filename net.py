@@ -96,22 +96,22 @@ class ConvNetRCWA(nn.Module):
 
         self.net = nn.Sequential(
             # fist halving, reasoning
-            nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
-            nn.InstanceNorm2d(16),
-            nn.ReLU(),
-
-            # reasoning
-            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding='same'),
+            nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1),
             nn.InstanceNorm2d(32),
             nn.ReLU(),
 
-            # second halving
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            # reasoning
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding='same'),
             nn.InstanceNorm2d(64),
             nn.ReLU(),
 
+            # second halving
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            nn.InstanceNorm2d(128),
+            nn.ReLU(),
+
             # reasoning
-            nn.Conv2d(64, 32, kernel_size=3, stride=1, padding='same'),
+            nn.Conv2d(128, 32, kernel_size=3, stride=1, padding='same'),
             nn.InstanceNorm2d(32),
             nn.ReLU(),
 
