@@ -37,7 +37,7 @@ class rcwa_solver():
         self.sim_dtype = torch.complex64
         geo_dtype = torch.float32
         #self.lamb0 = torch.tensor(1550.,dtype=geo_dtype,device=device)    # nm
-        self.lamb0 = torch.tensor(1050.,dtype=geo_dtype,device=device)    # nm
+        self.lamb0 = torch.tensor(1550.,dtype=geo_dtype,device=device)    # nm
         self.theta = 0.01*(np.pi/180)    # radian
 
         # material
@@ -46,8 +46,8 @@ class rcwa_solver():
         self.silicon_eps = 3.5**2
 
         # geometry
-        #self.L = [4531., 1000.]            # nm / nm
-        self.L = [1087., 525.]            # nm / nm
+        self.L = [4531., 1000.]            # nm / nm
+        #self.L = [1087., 525.]            # nm / nm
 
         # layers
         self.layer0_thickness = 300.
