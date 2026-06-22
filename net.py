@@ -116,7 +116,7 @@ class ConvNetRCWA(nn.Module):
             nn.ReLU(),
 
             # last halving
-            nn.Conv2d(32, 1, kernel_size=3, stride=2, padding=1)
+            nn.Conv2d(32, 1, kernel_size=3, stride=2, padding=1)    # desired size: 2048 x 512
         )
 
         #self.threshold = nn.Parameter(torch.tensor(0.0))
@@ -139,7 +139,8 @@ class ConvNetRCWA(nn.Module):
 
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = ConvNetRCWA(n=11, m=10, step=360)
+    #model = ConvNetRCWA(n=11, m=10, step=360)
+    model = ConvNetRCWA(n=14, m=12, step=360)
     model = model.to(device)
 
     # if there is a good model already found, load it.
@@ -170,8 +171,6 @@ if __name__ == '__main__':
         current_tau = max(0.1, 3.0 * (0.995 ** epoch))
 
         r, v = model(solver, tau=current_tau)
-        print(r.shape)
-        print(v)
 
         loss = -lf.harmonic_mean(v)
         loss_plot.append(loss.item())
