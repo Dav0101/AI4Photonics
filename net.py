@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import os
 import loss as lf
+import time
 
 
 def gumbel_sigmoid(logits: Tensor, tau: float = 1, hard: bool = False, threshold: float = 0.5) -> Tensor:
@@ -57,8 +58,8 @@ class rcwa_solver():
         torcwa.rcwa_geo.device = device
         torcwa.rcwa_geo.Lx = self.L[0]
         torcwa.rcwa_geo.Ly = self.L[1]
-        torcwa.rcwa_geo.nx = 256
-        torcwa.rcwa_geo.ny = 128
+        torcwa.rcwa_geo.nx = 2048
+        torcwa.rcwa_geo.ny = 512
         torcwa.rcwa_geo.grid()
         torcwa.rcwa_geo.edge_sharpness = 1000.
 
@@ -92,31 +93,38 @@ class ConvNetRCWA(nn.Module):
         super().__init__()
 
         self.register_buffer("angles", torch.arange(0, 360, step, dtype=torch.float32))
-        self.register_buffer("initial_rho", nn.Parameter(torch.rand(1, 2 ** n, 2 ** m)))
+        self.register_buffer("initial_rho", nn.Parameter(torch.rand(1, 1, 2 ** n, 2 ** m)))
 
         self.net = nn.Sequential(
-            # fist halving, reasoning
+            # first halving, 1024 x 256, reasoning
             nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1),
             nn.InstanceNorm2d(32),
             nn.ReLU(),
 
-            # reasoning
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding='same'),
+            # second halving, 512 x 128, reasoning
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.InstanceNorm2d(64),
             nn.ReLU(),
 
-            # second halving
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            # reasoning
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding='same'),
             nn.InstanceNorm2d(128),
             nn.ReLU(),
 
-            # reasoning
-            nn.Conv2d(128, 32, kernel_size=3, stride=1, padding='same'),
+            # first doubling, 1024 x 256, reasoning
+            nn.Upsample(scale_factor=2, mode='nearest'),
+            nn.Conv2d(128, 64, kernel_size=3, stride=1, padding='same'),
+            nn.InstanceNorm2d(64),
+            nn.ReLU(),
+
+            # second doubling, 2048 x 512, reasoning
+            nn.Upsample(scale_factor=2, mode='nearest'),
+            nn.Conv2d(64, 32, kernel_size=3, stride=1, padding='same'),
             nn.InstanceNorm2d(32),
             nn.ReLU(),
 
-            # last halving
-            nn.Conv2d(32, 1, kernel_size=3, stride=2, padding=1)    # desired size: 2048 x 512
+            # last reasoning
+            nn.Conv2d(32, 1, kernel_size=3, stride=1, padding='same')    # desired size: 2048 x 512 (2^11 x 2^9)
         )
 
         #self.threshold = nn.Parameter(torch.tensor(0.0))
@@ -125,7 +133,7 @@ class ConvNetRCWA(nn.Module):
         """logits = self.net(self.initial_rho)
         balanced_logits = (logits - logits.mean()) + self.threshold"""
         # squeeze removes the first dimension (channels=1)
-        rho = gumbel_sigmoid(self.net(self.initial_rho), tau=tau, hard=True).squeeze(0)
+        rho = gumbel_sigmoid(self.net(self.initial_rho), tau=tau, hard=True).squeeze()
         print(rho)
         sigmas = []
 
@@ -134,13 +142,14 @@ class ConvNetRCWA(nn.Module):
             singular_values = torch.linalg.svdvals(jones_matrix)
             sigmas.append(torch.min(singular_values))
 
-        return rho.squeeze(0), torch.stack(sigmas)
+        return rho, torch.stack(sigmas)
 
 
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     #model = ConvNetRCWA(n=11, m=10, step=360)
-    model = ConvNetRCWA(n=14, m=12, step=360)
+    #model = ConvNetRCWA(n=14, m=12, step=360)
+    model = ConvNetRCWA(n=11, m=9, step=360)
     model = model.to(device)
 
     # if there is a good model already found, load it.
@@ -154,7 +163,7 @@ if __name__ == '__main__':
         best_loss = float('inf')
         lr = 0.001"""
     
-    epochs = 1000
+    epochs = 700
 
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=0.0003, betas=(0.5, 0.9))
@@ -163,6 +172,7 @@ if __name__ == '__main__':
 
     loss_plot = []
     best_loss = float('inf')
+    start_total_time = time.time()
 
     for epoch in range(epochs):
         model.train()
@@ -171,6 +181,8 @@ if __name__ == '__main__':
         current_tau = max(0.1, 3.0 * (0.995 ** epoch))
 
         r, v = model(solver, tau=current_tau)
+        print(r.shape)
+        print(v)
 
         loss = -lf.harmonic_mean(v)
         loss_plot.append(loss.item())
@@ -190,6 +202,12 @@ if __name__ == '__main__':
                 'model_state': model.state_dict()
             }
             torch.save(checkpoint, 'best_model.pth')
+
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+    total_time = time.time() - start_total_time
+    print(f"total time: {total_time/60:.2f} minutes")
 
     print(best_loss)
 
