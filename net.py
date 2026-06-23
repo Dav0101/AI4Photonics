@@ -127,12 +127,8 @@ class ConvNetRCWA(nn.Module):
             nn.Conv2d(32, 1, kernel_size=3, stride=1, padding='same')    # desired size: 2048 x 512 (2^11 x 2^9)
         )
 
-        #self.threshold = nn.Parameter(torch.tensor(0.0))
-
     def forward(self, solver, tau=1.0):
-        """logits = self.net(self.initial_rho)
-        balanced_logits = (logits - logits.mean()) + self.threshold"""
-        # squeeze removes the first dimension (channels=1)
+        # squeeze removes the dimensions with 1 (channels=1, batch_size = 1)
         rho = gumbel_sigmoid(self.net(self.initial_rho), tau=tau, hard=True).squeeze()
         print(rho)
         sigmas = []
@@ -147,8 +143,6 @@ class ConvNetRCWA(nn.Module):
 
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #model = ConvNetRCWA(n=11, m=10, step=360)
-    #model = ConvNetRCWA(n=14, m=12, step=360)
     model = ConvNetRCWA(n=11, m=9, step=360)
     model = model.to(device)
 
@@ -205,7 +199,6 @@ if __name__ == '__main__':
 
     if torch.cuda.is_available():
         torch.cuda.synchronize()
-
     total_time = time.time() - start_total_time
     print(f"total time: {total_time/60:.2f} minutes")
 
