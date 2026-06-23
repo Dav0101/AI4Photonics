@@ -178,7 +178,7 @@ if __name__ == '__main__':
         print(r.shape)
         print(v)
 
-        loss = -lf.harmonic_mean(v)
+        loss = -lf.harmonic_mean(v) + lf.geometric_component(r)
         loss_plot.append(loss.item())
         loss.backward()
         # clipping the gradient

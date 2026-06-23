@@ -1,10 +1,11 @@
 import torch
 from torch import Tensor
+import kornia.morphology as kr
 
 
-def geometric_component(rho):
-    # TODO Placeholder
-    return torch.tensor(0)
+def geometric_component(v: Tensor):
+    v_smooth = kr.closing(kr.opening(v))
+    return torch.mean(torch.abs(v-v_smooth))
 
 
 def sample_mean(v: Tensor):
@@ -17,11 +18,3 @@ def geometric_mean(v: Tensor):
 
 def harmonic_mean(v: Tensor):
     return v.numel() / torch.sum(1.0 / v + 1e-6)
-
-
-def rcwa_loss(rho, sigmas, alpha=1):
-    return - harmonic_mean(sigmas) + alpha * geometric_component(rho)
-
-
-if __name__ == '__main__':
-    print(torch.exp(torch.tensor(1)))
