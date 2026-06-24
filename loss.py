@@ -4,7 +4,12 @@ import kornia.morphology as kr
 
 
 def geometric_component(v: Tensor):
-    v_smooth = kr.closing(kr.opening(v))
+    v_4d = v.unsqueeze(0).unsqueeze(0)
+    kernel = torch.ones(5, 5, device=v.device, dtype=v.dtype)
+
+    v_smooth_4d = kr.closing(kr.opening(v_4d, kernel), kernel)
+    v_smooth = v_smooth_4d.squeeze()
+
     return torch.mean(torch.abs(v-v_smooth))
 
 

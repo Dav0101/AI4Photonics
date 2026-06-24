@@ -158,12 +158,16 @@ if __name__ == '__main__':
         lr = 0.001"""
     
     epochs = 700
+    warmup = 400
+    max_geometric_weight = 20.0
 
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=0.0003, betas=(0.5, 0.9))
     #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=100, min_lr=1e-6)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
+    rcwa_loss_plot = []
+    geometric_loss_plot = []
     loss_plot = []
     best_loss = float('inf')
     start_total_time = time.time()
@@ -172,14 +176,27 @@ if __name__ == '__main__':
         model.train()
         optimizer.zero_grad()
 
+        # parameter to balance the gumbel
         current_tau = max(0.1, 3.0 * (0.995 ** epoch))
+        # parameter to balance the geometric component of the loss
+        if epoch < warmup:
+            geometric_weight = 0.0
+        else:
+            progress = (epoch - warmup) / (epochs - warmup)
+            geometric_weight = max_geometric_weight*progress
 
         r, v = model(solver, tau=current_tau)
         print(r.shape)
         print(v)
 
-        loss = -lf.harmonic_mean(v) + lf.geometric_component(r)
+        rcwa_loss = -lf.harmonic_mean(v)
+        geometric_loss = lf.geometric_component(r)
+        loss = rcwa_loss + geometric_weight*geometric_loss
+
+        rcwa_loss_plot.append(rcwa_loss.item())
+        geometric_loss_plot.append(geometric_loss.item())
         loss_plot.append(loss.item())
+
         loss.backward()
         # clipping the gradient
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.05)
@@ -190,7 +207,7 @@ if __name__ == '__main__':
         print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
 
         if loss.item() < best_loss:
-            best_loss = loss.item()
+            best_loss = rcwa_loss.item()
             checkpoint = {
                 'best_loss': best_loss,
                 'model_state': model.state_dict()
@@ -206,9 +223,28 @@ if __name__ == '__main__':
 
     # plot the loss
     plt.figure()
-    plt.plot(range(epochs), loss_plot)
+    plt.plot(range(epochs), rcwa_loss_plot, label="rcwa loss", color="green")
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig("rcwa_loss.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+    # plot the loss
+    plt.figure()
+    plt.plot(range(epochs), geometric_loss_plot, label="geometric loss", color ="red")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig("geometric_loss.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+    # plot the loss
+    plt.figure()
+    plt.plot(range(epochs), loss_plot, label="total_loss", color="blue")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.legend()
     plt.savefig("loss.png", dpi=300, bbox_inches="tight")
     plt.show()
 
