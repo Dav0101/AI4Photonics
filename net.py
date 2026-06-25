@@ -5,7 +5,6 @@ from torch import Tensor
 import torcwa
 import numpy as np
 from matplotlib import pyplot as plt
-import os
 import loss as lf
 import time
 
@@ -145,31 +144,19 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ConvNetRCWA(n=11, m=9, step=360)
     model = model.to(device)
-
-    # if there is a good model already found, load it.
-    """checkpoint_path = 'best_model.pth'
-    if os.path.exists(checkpoint_path):
-        checkpoint = torch.load(checkpoint_path, map_location=device)
-        model.load_state_dict(checkpoint['model_state'])
-        best_loss = checkpoint['best_loss']
-        lr = 0.0001
-    else:
-        best_loss = float('inf')
-        lr = 0.001"""
     
-    epochs = 700
-    warmup = 400
-    max_geometric_weight = 20.0
+    epochs = 1200
+    warmup = 700
+    max_geometric_weight = 60.0
 
     solver = rcwa_solver(device)
     optimizer = optim.Adam(model.parameters(), lr=0.0003, betas=(0.5, 0.9))
-    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=100, min_lr=1e-6)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     rcwa_loss_plot = []
     geometric_loss_plot = []
     loss_plot = []
-    best_loss = float('inf')
+    best_rcwa_loss = float('inf')
     start_total_time = time.time()
 
     for epoch in range(epochs):
@@ -206,20 +193,17 @@ if __name__ == '__main__':
         
         print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
 
-        if loss.item() < best_loss:
-            best_loss = rcwa_loss.item()
-            checkpoint = {
-                'best_loss': best_loss,
-                'model_state': model.state_dict()
-            }
-            torch.save(checkpoint, 'best_model.pth')
+        if epoch > warmup and rcwa_loss.item() < best_rcwa_loss:
+            best_rcwa_loss = rcwa_loss.item()
 
     if torch.cuda.is_available():
         torch.cuda.synchronize()
     total_time = time.time() - start_total_time
     print(f"total time: {total_time/60:.2f} minutes")
+    print(best_rcwa_loss)
 
-    print(best_loss)
+    # save the model
+    torch.save(model.state_dict(), 'best_model.pth')
 
     # plot the loss
     plt.figure()
