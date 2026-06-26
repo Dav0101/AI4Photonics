@@ -80,7 +80,7 @@ class rcwa_solver():
         row1 = torch.stack([S_ss, S_ps])
         row2 = torch.stack([S_sp, S_pp])
         jones_matrix = torch.stack([row1, row2])
-        print(jones_matrix)
+        #print(jones_matrix)
 
         return jones_matrix
 
@@ -127,7 +127,7 @@ class ConvNetRCWA(nn.Module):
     def forward(self, solver, tau=1.0):
         # squeeze removes the dimensions with 1 (channels=1, batch_size = 1)
         rho = gumbel_sigmoid(self.net(self.initial_rho), tau=tau, hard=True).squeeze()
-        print(rho)
+        #print(rho)
         sigmas = []
 
         for angle in self.angles.tolist():
@@ -171,8 +171,8 @@ if __name__ == '__main__':
             geometric_weight = max_geometric_weight*progress
 
         r, v = model(solver, tau=current_tau)
-        print(r.shape)
-        print(v)
+        #print(r.shape)
+        #print(v)
 
         rcwa_loss = -lf.harmonic_mean(v)
         geometric_loss = lf.geometric_component(r)
@@ -187,7 +187,7 @@ if __name__ == '__main__':
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.05)
         optimizer.step()
         # reduce the learning rate
-        scheduler.step(loss.item())
+        scheduler.step()
         
         print(f"Epoch {epoch+1} - Loss: {loss:.4f}")
 
