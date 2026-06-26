@@ -18,9 +18,6 @@ def gumbel_sigmoid(logits: Tensor, tau: float = 1, hard: bool = False, threshold
     y_soft = gumbels.sigmoid()
 
     if hard:
-        """indices = (y_soft > threshold).nonzero(as_tuple=True)
-        y_hard = torch.zeros_like(logits, memory_format=torch.legacy_contiguous_format)
-        y_hard[indices[0], indices[1]] = 1.0"""
         y_hard = (y_soft > threshold).to(logits.dtype)
 
         ret = y_hard - y_soft.detach() + y_soft
@@ -257,5 +254,5 @@ if __name__ == '__main__':
     plt.xlim([0,torcwa.rcwa_geo.Lx])
     plt.ylim([0,torcwa.rcwa_geo.Ly])
     plt.colorbar()
-    plt.savefig("rho.png", dpi=300, bbox_inches="tight")
+    plt.savefig("rho_fixed.png", dpi=300, bbox_inches="tight")
     plt.show()
