@@ -23,3 +23,15 @@ def geometric_mean(v: Tensor):
 
 def harmonic_mean(v: Tensor):
     return v.numel() / torch.sum(1.0 / v + 1e-6)
+
+"""
+access email: metamaterial.nest@gmail.com
+pw: gigaflop
+
+phone number: 3382637412
+
+dugong pin: 636953
+
+pw user: ai4photonics
+
+inc ang for second surface 13.54"""

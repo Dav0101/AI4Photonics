@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import loss as lf
 import time
+import kornia.morphology as kr
 
 
 def gumbel_sigmoid(logits: Tensor, tau: float = 1, hard: bool = False, threshold: float = 0.5) -> Tensor:
@@ -142,7 +143,7 @@ class ConvNetRCWA(nn.Module):
 
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = ConvNetRCWA(n=11, m=9, step=360)
+    model = ConvNetRCWA(n=11, m=9, step=10)
     model = model.to(device)
     
     epochs = 1200
@@ -237,6 +238,22 @@ if __name__ == '__main__':
     x_axis = torcwa.rcwa_geo.x.cpu().numpy()
     y_axis = torcwa.rcwa_geo.y.cpu().numpy()
     plt.imshow(torch.transpose(r,-2,-1).detach().cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]])
+    plt.xlim([0,torcwa.rcwa_geo.Lx])
+    plt.ylim([0,torcwa.rcwa_geo.Ly])
+    plt.colorbar()
+    plt.savefig("rho.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+    # plot the fixed surface
+    plt.figure()
+    x_axis = torcwa.rcwa_geo.x.cpu().numpy()
+    y_axis = torcwa.rcwa_geo.y.cpu().numpy()
+    kernel = torch.ones(5, 5, device=v.device, dtype=v.dtype)
+    plt.imshow(
+        torch.transpose(
+            kr.closing(kr.opening(r.unsqueeze(0).unsqueeze(0), kernel), kernel),-2,-1
+        ).detach().cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]]
+    )
     plt.xlim([0,torcwa.rcwa_geo.Lx])
     plt.ylim([0,torcwa.rcwa_geo.Ly])
     plt.colorbar()
