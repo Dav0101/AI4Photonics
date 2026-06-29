@@ -34,9 +34,9 @@ class rcwa_solver():
         # light
         self.sim_dtype = torch.complex64
         geo_dtype = torch.float32
-        #self.lamb0 = torch.tensor(1550.,dtype=geo_dtype,device=device)    # nm
+        #self.lamb0 = torch.tensor(1050.,dtype=geo_dtype,device=device)    # nm
         self.lamb0 = torch.tensor(1550.,dtype=geo_dtype,device=device)    # nm
-        self.theta = 0.01*(np.pi/180)    # radian
+        self.theta = torch.tensor(0.01*(torch.pi/180))    # radian
 
         # material
         self.substrate_eps = 1.46**2
@@ -45,6 +45,7 @@ class rcwa_solver():
 
         # geometry
         self.L = [4531., 1000.]            # nm / nm
+        #self.L= [1700.,1000.]
         #self.L = [1087., 525.]            # nm / nm
 
         # layers
@@ -86,10 +87,11 @@ class rcwa_solver():
 
 
 class ConvNetRCWA(nn.Module):
-    def __init__(self, n, m, step):
+    def __init__(self, n, m, step, device2):
         super().__init__()
+        self.device2=device2
 
-        self.register_buffer("angles", torch.arange(0, 360, step, dtype=torch.float32))
+        self.register_buffer("angles", torch.arange(0, 360, step, dtype=torch.float32, device=self.device2))
         self.register_buffer("initial_rho", nn.Parameter(torch.rand(1, 1, 2 ** n, 2 ** m)))
 
         self.net = nn.Sequential(
@@ -139,8 +141,11 @@ class ConvNetRCWA(nn.Module):
 
 
 if __name__ == '__main__':
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = ConvNetRCWA(n=11, m=9, step=10)
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device=torch.device('cpu')
+    model = ConvNetRCWA(n=11, m=9, step=10, device2=device) #4531
+    #model = ConvNetRCWA(n=10, m=9, step=360, device2=device) #1700
+    #model = ConvNetRCWA(n=9, m=8, step=360, device2=device)  #1087
     model = model.to(device)
     
     epochs = 1200
@@ -209,7 +214,7 @@ if __name__ == '__main__':
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig("rcwa_loss.png", dpi=300, bbox_inches="tight")
+    plt.savefig("rcwa_loss_0_span_4531.png", dpi=300, bbox_inches="tight")
     plt.show()
 
     # plot the loss
@@ -218,7 +223,7 @@ if __name__ == '__main__':
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig("geometric_loss.png", dpi=300, bbox_inches="tight")
+    plt.savefig("geometric_loss_0_span_4531.png", dpi=300, bbox_inches="tight")
     plt.show()
 
     # plot the loss
@@ -227,7 +232,7 @@ if __name__ == '__main__':
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig("loss.png", dpi=300, bbox_inches="tight")
+    plt.savefig("loss_0_span_4531.png", dpi=300, bbox_inches="tight")
     plt.show()
 
     # plot the surface
@@ -238,7 +243,7 @@ if __name__ == '__main__':
     plt.xlim([0,torcwa.rcwa_geo.Lx])
     plt.ylim([0,torcwa.rcwa_geo.Ly])
     plt.colorbar()
-    plt.savefig("rho.png", dpi=300, bbox_inches="tight")
+    plt.savefig("rho_0_span_4531.png", dpi=300, bbox_inches="tight")
     plt.show()
 
     # plot the fixed surface
@@ -248,11 +253,11 @@ if __name__ == '__main__':
     kernel = torch.ones(5, 5, device=v.device, dtype=v.dtype)
     plt.imshow(
         torch.transpose(
-            kr.closing(kr.opening(r.unsqueeze(0).unsqueeze(0), kernel), kernel),-2,-1
+            kr.closing(kr.opening(r.unsqueeze(0).unsqueeze(0), kernel), kernel).squeeze(),-2,-1
         ).detach().cpu(),origin='lower',extent=[x_axis[0],x_axis[-1],y_axis[0],y_axis[-1]]
     )
     plt.xlim([0,torcwa.rcwa_geo.Lx])
     plt.ylim([0,torcwa.rcwa_geo.Ly])
     plt.colorbar()
-    plt.savefig("rho_fixed.png", dpi=300, bbox_inches="tight")
+    plt.savefig("rho_fixed_4531.png", dpi=300, bbox_inches="tight")
     plt.show()
